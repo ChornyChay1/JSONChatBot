@@ -18,14 +18,13 @@
    pip install -r requirements.txt
    ```
    
-2. Установите зависимости:
-Создайте файл secret.py и укажите там необходимые переменные:
+3. Создайте файл secret.py и укажите там необходимые переменные:
     ```python
-API_TOKEN =  #токен бота взять из BotFather
-DATABASE_URL = "sqlite+aiosqlite:///bot_data.db" #можно сменить название базы данных или её саму
-APPROVAL_CHAT_ID = "-1002375623822" #Telegram-ID модератора, который будет проверять отчёты для фото-вопросов
+API_TOKEN = "ВАШ_ТОКЕН_ЗДЕСЬ"  # токен бота взять из BotFather
+DATABASE_URL = "sqlite+aiosqlite:///bot_data.db"  # можно сменить название базы данных или её саму
+APPROVAL_CHAT_ID = "-1002375623822"  # Telegram-ID модератора, который будет проверять отчёты для фото-вопросов
   ```
-3. Настройте под себя questions.json:
+4. Настройте под себя questions.json:
    Пример синтаксиса:
       ```json
     {
