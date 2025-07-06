@@ -15,8 +15,9 @@
    ```
 2. Установите зависимости:
    ```bash
-  pip install -r requirements.txt
-   ``` 
+   pip install -r requirements.txt
+   ```
+   
 2. Установите зависимости:
 Создайте файл secret.py и укажите там необходимые переменные:
     ```python
@@ -90,7 +91,7 @@ python settings-server.py
 
 ### Интерфейс утилиты
 <p align="center">
-  <img src="presentation/util.png" width="400" alt="Утилита для редактирования сценариев" />
+  <img src="presentation/util.png" width="600" alt="Утилита для редактирования сценариев" />
 </p>
 
 ## Используемые технологии
