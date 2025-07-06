@@ -41,11 +41,13 @@
     <Content Include="files\test_image.png" />
     <Content Include="files\test_video.mp4" />
     <Content Include="files\test_note.mp4" />
+    <Content Include="presentation\util.png" />
     <Content Include="questions.json" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="files\" />
     <Folder Include="handlers\" />
+    <Folder Include="presentation\" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env\">
