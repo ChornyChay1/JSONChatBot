@@ -1,0 +1,73 @@
+{
+  "1": {
+    "type": "text",
+    "question": "Привет! Давай проверим все типы сообщений. Готов?",
+    "options": [ "Да", "Нет" ],
+    "branching": true,
+    "branches": {
+      "Да": "2",
+      "Нет": "end"
+    }
+  },
+  "2": {
+    "type": "video",
+    "question": "Вот видеофайл.",
+    "video_file": "files/test_video.mp4",
+    "options": [ "➡️" ],
+    "branching": true,
+    "branches": {
+      "➡️": "3"
+    }
+  },
+  "3": {
+    "type": "audio",
+    "question": "А теперь аудиофайл.",
+    "audio_file": "files/test_audio.ogg",
+    "options": [ "➡️" ],
+    "branching": true,
+    "branches": {
+      "➡️": "4"
+    }
+  },
+  "4": {
+    "type": "video_note",
+    "question": "Вот видеосообщение (кружок).",
+    "video_file": "files/test_note.mp4",
+    "options": [ "➡️" ],
+    "branching": true,
+    "branches": {
+      "➡️": "5"
+    }
+  },
+  "5": {
+    "type": "photo",
+    "question": "Пришли фото в ответ на это сообщение!",
+    "branching": true,
+    "branches": {
+      "любое": "6"
+    }
+  },
+  "6": {
+    "type": "image",
+    "question": "Вот тебе изображение.",
+    "image_file": "files/test_image.jpg",
+    "options": [ "Дальше" ],
+    "branching": true,
+    "branches": {
+      "Дальше": "7"
+    }
+  },
+  "7": {
+    "type": "text",
+    "question": "Все типы сообщений пройдены! Перейти к завершению?",
+    "options": [ "Завершить" ],
+    "branching": true,
+    "branches": {
+      "Завершить": "end"
+    }
+  },
+  "end": {
+    "type": "end",
+    "question": "Тест завершён! 🎉"
+  }
+}

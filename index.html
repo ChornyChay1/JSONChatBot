@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление Telegram ботом</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .question-card {
+            transition: all 0.3s ease;
+        }
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .json-editor {
+            min-height: 200px;
+            font-family: monospace;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+<div class="container mx-auto px-4 py-8" x-data="app()" x-init="init()" x-cloak>
+    <!-- Заголовок и статус бота -->
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Управление ботом</h1>
+        <div class="flex items-center space-x-4">
+            <span class="text-lg font-medium">Статус:</span>
+            <span x-text="botStatus"
+                  :class="{
+                          'bg-green-100 text-green-800': botStatus === 'running',
+                          'bg-red-100 text-red-800': botStatus === 'stopped'
+                      }"
+                  class="px-3 py-1 rounded-full text-sm font-medium"></span>
+        </div>
+    </div>
+
+    <!-- Панель управления ботом -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Управление состоянием бота</h2>
+        <div class="flex flex-wrap gap-4">
+            <button @click="startBot()"
+                    class="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-play"></i> Запустить
+            </button>
+            <button @click="stopBot()"
+                    class="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-stop"></i> Остановить
+            </button>
+            <button @click="restartBot()"
+                    class="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-sync-alt"></i> Перезапустить
+            </button>
+        </div>
+    </div>
+
+    <!-- Список вопросов -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Управление вопросами</h2>
+            <button @click="showAddQuestionModal = true"
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                <i class="fas fa-plus"></i> Добавить вопрос
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <template x-for="(question, id) in questions" :key="id">
+                <div class="question-card bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium text-lg" x-text="'Вопрос #' + id"></h3>
+                        <div class="flex gap-2">
+                            <button @click="editQuestion(id)"
+                                    class="text-blue-500 hover:text-blue-700">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button @click="deleteQuestion(id)"
+                                    class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-2" x-text="question.question"></p>
+                    <div class="text-sm text-gray-500">
+                        <span x-text="'Тип: ' + question.type" class="mr-2"></span>
+                        <span x-text="'Вариантов: ' + (question.options ? question.options.length : 0)"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления/редактирования вопроса -->
+    <div x-show="showAddQuestionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold" x-text="editingQuestionId ? 'Редактировать вопрос' : 'Добавить вопрос'"></h3>
+                    <button @click="closeModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ID вопроса</label>
+                        <input x-model="currentQuestion.id" type="text"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Тип вопроса</label>
+                        <select x-model="currentQuestion.type"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="text">Текст</option>
+                            <option value="photo">Фото</option>
+                            <option value="video">Видео</option>
+                            <option value="audio">Аудио</option>
+                            <option value="image">Изображение</option>
+                            <option value="video_note">Видео-сообщение</option>
+                            <option value="end">Конец</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Текст вопроса</label>
+                        <textarea x-model="currentQuestion.question"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                  rows="3"></textarea>
+                    </div>
+
+                    <div x-show="['text', 'audio', 'video', 'image', 'video_note'].includes(currentQuestion.type)">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Варианты ответов (каждый с новой строки)</label>
+                        <textarea x-model="currentQuestion.optionsText"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                  rows="3"></textarea>
+                    </div>
+
+                    <div x-show="['photo', 'video', 'audio', 'image', 'video_note'].includes(currentQuestion.type)">
+                        <label class="block text-sm font-medium text-gray-700 mb-1"
+                               x-text="currentQuestion.type === 'photo' ? 'Дополнительные изображения' :
+                                           currentQuestion.type === 'video' ? 'Видео файл' :
+                                           currentQuestion.type === 'audio' ? 'Аудио файл' :
+                                           currentQuestion.type === 'image' ? 'Изображение' : 'Видео-сообщение'"></label>
+                        <input type="text" x-model="currentQuestion.mediaFile"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                               placeholder="Путь к файлу (например, files/example.jpg)">
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button @click="closeModal()"
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Отмена
+                        </button>
+                        <button @click="saveQuestion()"
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                            Сохранить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Импорт/экспорт JSON -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Импорт/экспорт вопросов</h2>
+        <div class="flex flex-wrap gap-4 mb-4">
+            <button @click="exportQuestions()"
+                    class="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                <i class="fas fa-file-export"></i> Экспорт JSON
+            </button>
+            <button @click="importQuestions()"
+                    class="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                <i class="fas fa-file-import"></i> Импорт JSON
+            </button>
+        </div>
+        <textarea x-model="jsonData" class="json-editor w-full p-3 border border-gray-300 rounded-md" rows="10"></textarea>
+        <div class="flex justify-end mt-3">
+            <button @click="saveJson()"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                Применить изменения
+            </button>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div x-show="notification.show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-300"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         :class="{
+                 'bg-green-100 border-green-400 text-green-700': notification.type === 'success',
+                 'bg-red-100 border-red-400 text-red-700': notification.type === 'error'
+             }"
+         class="fixed bottom-4 right-4 border-l-4 p-4 rounded shadow-lg max-w-sm">
+        <div class="flex justify-between items-start">
+            <div>
+                <p x-text="notification.message" class="font-medium"></p>
+            </div>
+            <button @click="notification.show = false" class="ml-4">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+    function app() {
+        return {
+            botStatus: 'loading',
+            questions: {},
+            showAddQuestionModal: false,
+            editingQuestionId: null,
+            currentQuestion: {
+                id: '',
+                type: 'text',
+                question: '',
+                optionsText: '',
+                mediaFile: '',
+                branching: false,
+                branches: {}
+            },
+            jsonData: '',
+            notification: {
+                show: false,
+                type: 'success',
+                message: ''
+            },
+
+            async init() {
+                await this.fetchBotStatus();
+                await this.fetchQuestions();
+            },
+
+            async fetchBotStatus() {
+                try {
+                    const response = await fetch('http://localhost:8000/bot/status');
+                    const data = await response.json();
+                    this.botStatus = data.status;
+                } catch (error) {
+                    this.showError('Ошибка при получении статуса бота');
+                }
+            },
+
+            async fetchQuestions() {
+                try {
+                    const response = await fetch('http://localhost:8000/questions');
+                    this.questions = await response.json();
+                    this.jsonData = JSON.stringify(this.questions, null, 2);
+                } catch (error) {
+                    this.showError('Ошибка при загрузке вопросов');
+                }
+            },
+
+            async startBot() {
+                try {
+                    const response = await fetch('http://localhost:8000/bot/start');
+                    const data = await response.json();
+                    this.showNotification(data.message);
+                    await this.fetchBotStatus();
+                } catch (error) {
+                    this.showError('Ошибка при запуске бота');
+                }
+            },
+
+            async stopBot() {
+                try {
+                    const response = await fetch('http://localhost:8000/bot/stop');
+                    const data = await response.json();
+                    this.showNotification(data.message);
+                    await this.fetchBotStatus();
+                } catch (error) {
+                    this.showError('Ошибка при остановке бота');
+                }
+            },
+
+            async restartBot() {
+                try {
+                    const response = await fetch('http://localhost:8000/bot/restart');
+                    const data = await response.json();
+                    this.showNotification(data.message);
+                    await this.fetchBotStatus();
+                } catch (error) {
+                    this.showError('Ошибка при перезапуске бота');
+                }
+            },
+
+            editQuestion(id) {
+                this.editingQuestionId = id;
+                const question = this.questions[id];
+
+                this.currentQuestion = {
+                    id: id,
+                    type: question.type || 'text',
+                    question: question.question || '',
+                    optionsText: question.options ? question.options.join('\n') : '',
+                    mediaFile: question.image_file || question.video_file || question.audio_file || '',
+                    branching: question.branching || false,
+                    branches: question.branches || {}
+                };
+
+                this.showAddQuestionModal = true;
+            },
+
+            prepareQuestionData() {
+                const data = {
+                    type: this.currentQuestion.type,
+                    question: this.currentQuestion.question,
+                    branching: this.currentQuestion.branching,
+                    branches: this.currentQuestion.branches
+                };
+
+                // Обработка вариантов ответов
+                if (this.currentQuestion.optionsText) {
+                    data.options = this.currentQuestion.optionsText.split('\n').filter(opt => opt.trim() !== '');
+                }
+
+                // Обработка медиа файлов
+                if (this.currentQuestion.mediaFile) {
+                    switch (this.currentQuestion.type) {
+                        case 'photo':
+                        case 'image':
+                            data.image_file = this.currentQuestion.mediaFile;
+                            break;
+                        case 'video':
+                        case 'video_note':
+                            data.video_file = this.currentQuestion.mediaFile;
+                            break;
+                        case 'audio':
+                            data.audio_file = this.currentQuestion.mediaFile;
+                            break;
+                    }
+                }
+
+                return data;
+            },
+
+            async saveQuestion() {
+                try {
+                    const questionData = this.prepareQuestionData();
+                    const questionId = this.currentQuestion.id;
+
+                    if (this.editingQuestionId) {
+                        // Обновление существующего вопроса
+                        const response = await fetch(`/questions/${questionId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(questionData)
+                        });
+
+                        if (!response.ok) throw new Error('Ошибка при обновлении вопроса');
+                    } else {
+                        // Добавление нового вопроса
+                        this.questions[questionId] = questionData;
+                        const response = await fetch('/questions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ questions: this.questions })
+                        });
+
+                        if (!response.ok) throw new Error('Ошибка при добавлении вопроса');
+                    }
+
+                    this.showNotification('Вопрос успешно сохранен');
+                    await this.fetchQuestions();
+                    this.closeModal();
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            },
+
+            async deleteQuestion(id) {
+                if (!confirm('Вы уверены, что хотите удалить этот вопрос?')) return;
+
+                try {
+                    const response = await fetch(`/questions/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Ошибка при удалении вопроса');
+
+                    this.showNotification('Вопрос успешно удален');
+                    await this.fetchQuestions();
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            },
+
+            exportQuestions() {
+                this.jsonData = JSON.stringify(this.questions, null, 2);
+                this.showNotification('Данные экспортированы в JSON');
+            },
+
+            importQuestions() {
+                try {
+                    const parsed = JSON.parse(this.jsonData);
+                    this.questions = parsed;
+                    this.showNotification('Данные импортированы из JSON');
+                } catch (error) {
+                    this.showError('Ошибка парсинга JSON');
+                }
+            },
+
+            async saveJson() {
+                try {
+                    const parsed = JSON.parse(this.jsonData);
+                    const response = await fetch('/questions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ questions: parsed })
+                    });
+
+                    if (!response.ok) throw new Error('Ошибка при сохранении вопросов');
+
+                    this.showNotification('Вопросы успешно обновлены');
+                    await this.fetchQuestions();
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            },
+
+            closeModal() {
+                this.showAddQuestionModal = false;
+                this.editingQuestionId = null;
+                this.currentQuestion = {
+                    id: '',
+                    type: 'text',
+                    question: '',
+                    optionsText: '',
+                    mediaFile: '',
+                    branching: false,
+                    branches: {}
+                };
+            },
+
+            showNotification(message, type = 'success') {
+                this.notification = {
+                    show: true,
+                    type,
+                    message
+                };
+                setTimeout(() => this.notification.show = false, 5000);
+            },
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            }
+        }
+    }
+</script>
+</body>
+</html>
